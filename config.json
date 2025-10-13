@@ -89,6 +89,7 @@
       "contentType": "model",
       "contentFile": "Bender.glb",
       "modelScale": 0.3,
+      "position": { "z": -0.5 },
       "rotation": { "y": -1.5707963267948966, "x": -1.0 },
       "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
     },
