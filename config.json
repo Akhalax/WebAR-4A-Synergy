@@ -36,7 +36,7 @@
       "contentFile": "cat.gltf",
       "modelScale": 0.3,
       "rotation": { "x": 1.5708, "y": -0.4292 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      "animation": { "type": "rotation", "axis": "x", "speed": 0.01 }
     },
     {
       "id": 3,
@@ -116,8 +116,8 @@
       "target": "pattern-kopatuch.patt",
       "contentType": "model",
       "contentFile": "bird_orange.glb", 
-      "modelScale": 100,
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      "modelScale": 500,
+      "animation": { "type": "rotation", "axis": "x", "speed": 0.01 }
     },
     {
       "id": 9,
