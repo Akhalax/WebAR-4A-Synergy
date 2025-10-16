@@ -511,14 +511,44 @@
                             }
                             break;
                         case 'controller':
-                            controller = new THREE.Mesh(
-                                new THREE.CubeGeometry(10, 0.15, 0.15),
+                            // Create a controller composed of a green body and a red tip (last 10%)
+                            const controllerGroup = new THREE.Group();
+
+                            // Long axis along local Z to match tip detection along -Z
+                            const totalLength = 3; // 3x shorter than previous total of 10
+                            const tipFraction = 0.1;
+                            const tipLength = totalLength * tipFraction;  // 10%
+                            const bodyLength = totalLength - tipLength;   // 90%
+                            const crossSection = 0.15;
+
+                            const controllerBody = new THREE.Mesh(
+                                new THREE.BoxGeometry(crossSection, crossSection, bodyLength),
                                 new THREE.MeshBasicMaterial({ color: 'green' })
                             );
-                            controller.rotation.y = Math.PI / 2;
-                            controller.position.y = 0.125;
-                            controller.position.z = -4.5;
-                            markerRoots[i].add(controller);
+                            controllerBody.userData.isController = true;
+
+                            const controllerTip = new THREE.Mesh(
+                                new THREE.BoxGeometry(crossSection, crossSection, tipLength),
+                                new THREE.MeshBasicMaterial({ color: 'red' })
+                            );
+                            controllerTip.userData.isController = true;
+
+                            // Arrange so that the tip sits at the negative Z end of the combined shape
+                            const half = totalLength / 2;
+                            controllerTip.position.z = -half + tipLength / 2; // center of tip segment
+                            controllerBody.position.z = tipLength / 2;        // center of body segment
+
+                            controllerGroup.add(controllerBody);
+                            controllerGroup.add(controllerTip);
+
+                            // Position the whole controller as before (no Y-rotation needed now)
+                            controllerGroup.position.y = 0.125;
+                            controllerGroup.position.z = -(bodyLength / 2);
+
+                            markerRoots[i].add(controllerGroup);
+
+                            // Use the tip mesh for collision checks
+                            controller = controllerTip;
                             break;
                         default:
                             // Якщо жодного контенту не додано, додаємо білу площину.
@@ -574,7 +604,7 @@
                 // Виконуємо перевірку тільки якщо контролер активний (видно камері)
                 if (controller && controller.parent && controller.parent.visible) {
                     mainContainer.traverse((object) => {
-                        if (object.isMesh && object !== controller) {
+                        if (object.isMesh && !(object.userData && object.userData.isController)) {
                             if (detectCollisionCubes(object, controller)) {
                                 object.material.color.set('red')
                             } else {
@@ -586,7 +616,7 @@
                 // Якщо контролер не активний, скидаємо всі об'єкти до білого кольору
                 else {
                     mainContainer.traverse((object) => {
-                        if (object.isMesh && object !== controller) {
+                        if (object.isMesh && !(object.userData && object.userData.isController)) {
                             object.material.color.set('white')
                         }
                     });
@@ -594,19 +624,32 @@
             }
 
             // Функція пошуку перетинів між двома об'єктами сцени
-            function detectCollisionCubes(object1, object2) {
+            function detectCollisionCubes(object1, object2, tipFraction = 0.1) {
+                // Ensure bounding boxes are available in local space
                 object1.geometry.computeBoundingBox();
                 object2.geometry.computeBoundingBox();
                 object1.updateMatrixWorld();
                 object2.updateMatrixWorld();
 
-                const box1 = object1.geometry.boundingBox.clone();
-                box1.applyMatrix4(object1.matrixWorld);
+                // World-space AABB for object1 (full box)
+                const box1World = object1.geometry.boundingBox.clone();
+                box1World.applyMatrix4(object1.matrixWorld);
 
-                const box2 = object2.geometry.boundingBox.clone();
-                box2.applyMatrix4(object2.matrixWorld);
+                // Start from object2's LOCAL bounding box to define a local-space "tip" region
+                const box2Local = object2.geometry.boundingBox.clone();
 
-                return box1.intersectsBox(box2);
+                // Compute the last `tipFraction` along local -Z (common "forward" in three.js)
+                const extentZ = box2Local.max.z - box2Local.min.z;
+                const tipLen = Math.max(0, extentZ * tipFraction);
+
+                // Define tip box on the negative Z end: [minZ, minZ + tipLen]
+                const tipBoxLocal = box2Local.clone();
+                tipBoxLocal.max.z = box2Local.min.z + tipLen;
+
+                // Transform tip box to world space (will become world AABB)
+                tipBoxLocal.applyMatrix4(object2.matrixWorld);
+
+                return box1World.intersectsBox(tipBoxLocal);
             };
 
             // Оновлюємо AR контент на кожен кадр
