@@ -1,6 +1,6 @@
 {
   "settings": {
-    "resolution": "low",
+    "resolution": "high",
     "welcomeText": "Press here<br>to start the WebAR-BoardGame"
   },
   "markers": [
@@ -9,7 +9,9 @@
       "type": "pattern",
       "target": "pattern-ScanMe.patt",
       "contentType": "video",
-      "contentFile": "waterfall.mp4"
+      "contentFile": "waterfall.mp4",
+      "category": "question",
+      "answers": [1, 3, 5]
     },
     {
       "id": 1,
@@ -26,7 +28,9 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
-      }
+      },
+      "category": "answer",
+      "questionId": 0
     },
     {
       "id": 2,
@@ -36,7 +40,9 @@
       "contentFile": "cat.gltf",
       "modelScale": 0.3,
       "rotation": { "x": 1.5708, "y": -0.4292 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 },
+      "category": "question",
+      "answers": [4, 8]
     },
     {
       "id": 3,
@@ -54,7 +60,9 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
-      }
+      },
+      "category": "answer",
+      "questionId": 0
     },
     {
       "id": 4,
@@ -65,7 +73,9 @@
       "modelScale": 0.3,
       "position": { "z": -0.5 },
       "rotation": { "y": -1.5707963267948966 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 },
+      "category": "answer",
+      "questionId": 2
     },
     {
       "id": 5,
@@ -80,7 +90,9 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
-      }
+      },
+      "category": "answer",
+      "questionId": 0
     },
     {
       "id": 6,
@@ -91,7 +103,9 @@
       "modelScale": 0.3,
       "position": { "z": -0.5 },
       "rotation": { "y": -1.5707963267948966, "x": -1.0 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 },
+      "category": "question",
+      "answers": [7, 9]
     },
     {
       "id": 7,
@@ -108,7 +122,9 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
-      }
+      },
+      "category": "answer",
+      "questionId": 6
     },
     {
       "id": 8,
@@ -117,7 +133,9 @@
       "contentType": "model",
       "contentFile": "bird_orange.glb", 
       "modelScale": 100,
-      "animation": { "type": "rotation", "axis": "x", "speed": 0.01 }
+      "animation": { "type": "rotation", "axis": "x", "speed": 0.01 },
+      "category": "answer",
+      "questionId": 2
     },
     {
       "id": 9,
@@ -135,7 +153,9 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "z", "speed": 0.015 }
-      }
+      },
+      "category": "answer",
+      "questionId": 6
     },
     {
       "id": 10,

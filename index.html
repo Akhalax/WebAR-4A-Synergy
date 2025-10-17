@@ -87,6 +87,7 @@
 
             // Головний контейнер, до якого увійдуть всі 3D об'єкти для програми
             var markerRoot, mainContainer;
+            var markerRoots; // expose marker roots to update loop
 
             // Окремий масив для зберігання всього аудіо та відео контенту, який буде
             // запущений натисканням на екран смартфона
@@ -233,6 +234,8 @@
                 let videoFiles = [];
                 let audioFiles = [];
                 let repeatOptions = [];
+                // Map marker id -> index in config.markers
+                let idToIndex = new Map();
                 
                 // Визначаємо кількість маркерів з конфігурації
                 let maxMarkers = 0;
@@ -241,6 +244,10 @@
                 if (config && config.markers) {
                     maxMarkers = config.markers.length;
                     for (let i = 0; i < config.markers.length; i++) {
+                        // Build id->index map for relationship resolution
+                        if (typeof config.markers[i].id !== 'undefined') {
+                            idToIndex.set(config.markers[i].id, i);
+                        }
                         // Для зворотньої сумісності з попереднім кодом
                         if (config.markers[i].type === 'pattern') {
                             patternNames.push(config.markers[i].target);
@@ -279,7 +286,7 @@
                 }
   
                 // Створюємо масив для всіх маркерів
-                const markerRoots = [];
+                markerRoots = [];
                 for (let i = 0; i < maxMarkers; i++) {
                     markerRoots[i] = new THREE.Group();
                 }
@@ -287,6 +294,18 @@
                 // Проходимо по кожному маркеру з масиву і додаємо його в головний контейнер
                 for (let i = 0; i < maxMarkers; i++) {
                     mainContainer.add(markerRoots[i]);
+                    // Attach category and relationships to marker root for runtime logic
+                    const markerCfg = config.markers[i] || {};
+                    markerRoots[i].userData.category = markerCfg.category || 'neutral';
+                    markerRoots[i].userData.id = markerCfg.id;
+                    if (markerCfg.category === 'question' && Array.isArray(markerCfg.answers)) {
+                        markerRoots[i].userData.answerIndices = markerCfg.answers
+                            .map((answerId) => idToIndex.get(answerId))
+                            .filter((idx) => typeof idx === 'number');
+                    }
+                    if (markerCfg.category === 'answer' && typeof markerCfg.questionId !== 'undefined') {
+                        markerRoots[i].userData.questionIndex = idToIndex.get(markerCfg.questionId);
+                    }
 
                     // Якщо поточний маркер – це баркод, створюємо AR контролер під баркод
                     // якщо поточний маркер це патерн, аналогічно створюємо AR контролер під патерн
@@ -656,6 +675,21 @@
             function update() {
                 if (arToolkitSource.ready !== false) {
                     arToolkitContext.update(arToolkitSource.domElement);
+                    // Enforce Q/A visibility rule: an answer is only visible if its linked question is visible
+                    if (Array.isArray(markerRoots)) {
+                        for (let i = 0; i < markerRoots.length; i++) {
+                            const root = markerRoots[i];
+                            const isAnswer = root && root.userData && root.userData.category === 'answer';
+                            const questionIndex = root && root.userData ? root.userData.questionIndex : undefined;
+                            if (isAnswer && typeof questionIndex === 'number') {
+                                const questionVisible = markerRoots[questionIndex] && markerRoots[questionIndex].visible;
+                                if (!questionVisible) {
+                                    // Force-hide answer content when its question is not visible
+                                    root.visible = false;
+                                }
+                            }
+                        }
+                    }
                     if (contentInitialized) {
                         if (barcodesID.length) {
                             barcodesID.forEach((elem, index) => {
