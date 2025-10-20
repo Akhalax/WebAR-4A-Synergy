@@ -18,8 +18,6 @@
           "widthSegments": 16,
           "heightSegments": 16,
           "color": "#ff6600",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0],
           "animation": { "type": "rotation", "axis": "y", "speed": 0.02 }
         }
       }
@@ -36,8 +34,6 @@
         "radialSegments": 16,
         "color": "#ffff00",
         "textureFile": "texture_green.jpg",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
       }
     },
@@ -72,8 +68,6 @@
         "tubularSegments": 32,
         "color": "#ff00ff",
         "textureFile": "texture_red.jpg",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
       }
     },
@@ -98,8 +92,6 @@
         "size": [1, 1, 1],
         "textureFile": "texture_blue.jpg",
         "color": "#ff0000",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
       }
     },
@@ -126,8 +118,6 @@
         "heightSegments": 16,
         "color": "#00ff00",
         "textureFile": "texture_red.jpg",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
       },
       "alternativeContent": {
@@ -137,8 +127,6 @@
           "size": [1.2, 1.2, 1.2],
           "color": "#ff0066",
           "textureFile": "texture_blue.jpg",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0],
           "animation": { "type": "rotation", "axis": "z", "speed": 0.025 }
         }
       }
@@ -165,8 +153,6 @@
         "radialSegments": 16,
         "color": "#0000ff",
         "textureFile": "texture_green.jpg",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "z", "speed": 0.015 }
       }
     },
