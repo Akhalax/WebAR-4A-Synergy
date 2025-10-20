@@ -102,8 +102,240 @@
             let patternsID = [];
 
             let controller;
+            
+            // Track current content state for each marker (true = alternative content, false = first content)
+            let markerContentState = new Map();
+            
+            // Store alternative content objects for each marker
+            let markerAlternativeContent = new Map();
 
             // Використовуємо глобальну функцію updateWelcomeText(), яку ми вже визначили вище
+            
+            // Function to create alternative content object based on configuration
+            function createAlternativeContent(markerIndex, alternativeContentConfig) {
+                if (!alternativeContentConfig) return null;
+                
+                const markerRoot = markerRoots[markerIndex];
+                if (!markerRoot) return null;
+                
+                switch (alternativeContentConfig.contentType) {
+                    case 'model':
+                        return createAlternativeModelContent(markerRoot, alternativeContentConfig);
+                    case 'primitive':
+                        return createAlternativePrimitiveContent(markerRoot, alternativeContentConfig);
+                    case 'image':
+                        return createAlternativeImageContent(markerRoot, alternativeContentConfig);
+                    case 'video':
+                        return createAlternativeVideoContent(markerRoot, alternativeContentConfig);
+                    default:
+                        return null;
+                }
+            }
+            
+            // Function to create model content for alternative content
+            function createAlternativeModelContent(markerRoot, config) {
+                return new Promise((resolve) => {
+                    const loader = new THREE.GLTF2Loader();
+                    loader.load(config.contentFile, (response) => {
+                        const scene = response.scene;
+                        const object = scene.children[0];
+                        
+                        if (config.modelScale) {
+                            const scale = config.modelScale;
+                            object.scale.set(scale, scale, scale);
+                        }
+                        
+                        if (config.position) {
+                            const pos = config.position;
+                            object.position.set(pos.x || 0, pos.y || 0, pos.z || 0);
+                        }
+                        
+                        if (config.rotation) {
+                            const rot = config.rotation;
+                            object.rotation.set(rot.x || 0, rot.y || 0, rot.z || 0);
+                        }
+                        
+                        if (config.animation) {
+                            object.userData.animation = config.animation;
+                        }
+                        
+                        object.userData.isAlternativeContent = true;
+                        resolve(object);
+                    });
+                });
+            }
+            
+            // Function to create primitive content for alternative content
+            function createAlternativePrimitiveContent(markerRoot, config) {
+                const primitive = config.primitive;
+                let geometry, material, mesh;
+                
+                switch(primitive.type) {
+                    case 'BoxGeometry':
+                        geometry = new THREE.BoxGeometry(...primitive.size);
+                        break;
+                    case 'SphereGeometry':
+                        geometry = new THREE.SphereGeometry(primitive.radius, primitive.widthSegments || 32, primitive.heightSegments || 32);
+                        break;
+                    case 'CylinderGeometry':
+                        geometry = new THREE.CylinderGeometry(
+                            primitive.radiusTop || 0.5, 
+                            primitive.radiusBottom || 0.5, 
+                            primitive.height || 1, 
+                            primitive.radialSegments || 32
+                        );
+                        break;
+                    case 'ConeGeometry':
+                        geometry = new THREE.ConeGeometry(
+                            primitive.radius || 0.5, 
+                            primitive.height || 1, 
+                            primitive.radialSegments || 32
+                        );
+                        break;
+                    case 'TorusGeometry':
+                        geometry = new THREE.TorusGeometry(
+                            primitive.radius || 1, 
+                            primitive.tubeRadius || 0.4, 
+                            primitive.radialSegments || 16, 
+                            primitive.tubularSegments || 32
+                        );
+                        break;
+                    default:
+                        geometry = new THREE.BoxGeometry(1, 1, 1);
+                }
+                
+                if (primitive.textureFile) {
+                    let texture = new THREE.TextureLoader().load(primitive.textureFile);
+                    material = new THREE.MeshBasicMaterial({ 
+                        map: texture,
+                        color: new THREE.Color(primitive.color || '#ffffff')
+                    });
+                } else {
+                    material = new THREE.MeshBasicMaterial({ 
+                        color: new THREE.Color(primitive.color || '#ffffff') 
+                    });
+                }
+                
+                mesh = new THREE.Mesh(geometry, material);
+                
+                if (primitive.position) {
+                    mesh.position.set(...primitive.position);
+                }
+                if (primitive.rotation) {
+                    mesh.rotation.set(...primitive.rotation);
+                }
+                
+                if (primitive.animation) {
+                    mesh.userData.animation = primitive.animation;
+                }
+                
+                mesh.userData.isAlternativeContent = true;
+                return Promise.resolve(mesh);
+            }
+            
+            // Function to create image content for alternative content
+            function createAlternativeImageContent(markerRoot, config) {
+                return new Promise((resolve) => {
+                    let loader = new THREE.TextureLoader();
+                    loader.load(config.contentFile, (texture) => {
+                        let geometry, ratio = texture.image.naturalWidth / texture.image.naturalHeight;
+                        if (texture.image.naturalHeight < texture.image.naturalWidth) {
+                            geometry = new THREE.PlaneBufferGeometry(ratio, 1);
+                        } else {
+                            geometry = new THREE.PlaneBufferGeometry(1, 1 / ratio);
+                        }
+                        let material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+                        let mesh = new THREE.Mesh(geometry, material);
+                        mesh.rotation.x = -Math.PI / 2;
+                        mesh.userData.isAlternativeContent = true;
+                        resolve(mesh);
+                    });
+                });
+            }
+            
+            // Function to create video content for alternative content
+            function createAlternativeVideoContent(markerRoot, config) {
+                let geometry = new THREE.PlaneBufferGeometry(1.6, 0.9);
+                let video = document.createElement('video');
+                video.src = config.contentFile;
+                video.playsInline = true;
+                
+                let texture = new THREE.VideoTexture(video);
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.format = THREE.RGBFormat;
+                let material = new THREE.MeshBasicMaterial({ map: texture });
+                let mesh = new THREE.Mesh(geometry, material);
+                mesh.rotation.x = -Math.PI / 2;
+                mesh.userData.isAlternativeContent = true;
+                
+                return Promise.resolve({ mesh, video });
+            }
+            
+            // Function to switch content for a specific marker
+            function switchMarkerContent(markerIndex, useAlternativeContent) {
+                const markerRoot = markerRoots[markerIndex];
+                if (!markerRoot) return;
+                
+                const currentState = markerContentState.get(markerIndex) || false;
+                if (currentState === useAlternativeContent) return; // Already in the desired state
+                
+                if (useAlternativeContent && markerAlternativeContent.has(markerIndex)) {
+                    // Switch to alternative content
+                    // Hide all current content (main content)
+                    markerRoot.children.forEach(child => {
+                        if (!(child.userData && child.userData.isController) && !child.userData.isAlternativeContent) {
+                            child.visible = false;
+                        }
+                    });
+                    
+                    // Show alternative content
+                    const alternativeContent = markerAlternativeContent.get(markerIndex);
+                    if (Array.isArray(alternativeContent)) {
+                        alternativeContent.forEach(content => {
+                            if (content.mesh) {
+                                content.mesh.visible = true;
+                                content.mesh.userData.isAlternativeContent = true;
+                                if (!markerRoot.children.includes(content.mesh)) {
+                                    markerRoot.add(content.mesh);
+                                }
+                            } else {
+                                content.visible = true;
+                                content.userData.isAlternativeContent = true;
+                                if (!markerRoot.children.includes(content)) {
+                                    markerRoot.add(content);
+                                }
+                            }
+                        });
+                    } else if (alternativeContent.mesh) {
+                        alternativeContent.mesh.visible = true;
+                        alternativeContent.mesh.userData.isAlternativeContent = true;
+                        if (!markerRoot.children.includes(alternativeContent.mesh)) {
+                            markerRoot.add(alternativeContent.mesh);
+                        }
+                    } else {
+                        alternativeContent.visible = true;
+                        alternativeContent.userData.isAlternativeContent = true;
+                        if (!markerRoot.children.includes(alternativeContent)) {
+                            markerRoot.add(alternativeContent);
+                        }
+                    }
+                } else {
+                    // Switch to main content
+                    // Hide all alternative content
+                    markerRoot.children.forEach(child => {
+                        if (!(child.userData && child.userData.isController)) {
+                            if (child.userData.isAlternativeContent) {
+                                child.visible = false;
+                            } else {
+                                child.visible = true;
+                            }
+                        }
+                    });
+                }
+                
+                markerContentState.set(markerIndex, useAlternativeContent);
+            }
 
             // Завантажуємо конфігурацію з config.json перед ініціалізацією
             fetch('config.json')
@@ -234,8 +466,6 @@
                 let videoFiles = [];
                 let audioFiles = [];
                 let repeatOptions = [];
-                // Map marker id -> index in config.markers
-                let idToIndex = new Map();
                 
                 // Визначаємо кількість маркерів з конфігурації
                 let maxMarkers = 0;
@@ -244,10 +474,6 @@
                 if (config && config.markers) {
                     maxMarkers = config.markers.length;
                     for (let i = 0; i < config.markers.length; i++) {
-                        // Build id->index map for relationship resolution
-                        if (typeof config.markers[i].id !== 'undefined') {
-                            idToIndex.set(config.markers[i].id, i);
-                        }
                         // Для зворотньої сумісності з попереднім кодом
                         if (config.markers[i].type === 'pattern') {
                             patternNames.push(config.markers[i].target);
@@ -294,18 +520,6 @@
                 // Проходимо по кожному маркеру з масиву і додаємо його в головний контейнер
                 for (let i = 0; i < maxMarkers; i++) {
                     mainContainer.add(markerRoots[i]);
-                    // Attach category and relationships to marker root for runtime logic
-                    const markerCfg = config.markers[i] || {};
-                    markerRoots[i].userData.category = markerCfg.category || 'neutral';
-                    markerRoots[i].userData.id = markerCfg.id;
-                    if (markerCfg.category === 'question' && Array.isArray(markerCfg.answers)) {
-                        markerRoots[i].userData.answerIndices = markerCfg.answers
-                            .map((answerId) => idToIndex.get(answerId))
-                            .filter((idx) => typeof idx === 'number');
-                    }
-                    if (markerCfg.category === 'answer' && typeof markerCfg.questionId !== 'undefined') {
-                        markerRoots[i].userData.questionIndex = idToIndex.get(markerCfg.questionId);
-                    }
 
                     // Якщо поточний маркер – це баркод, створюємо AR контролер під баркод
                     // якщо поточний маркер це патерн, аналогічно створюємо AR контролер під патерн
@@ -319,6 +533,19 @@
                             type: "barcode", barcodeValue: patternBarcode[i],
                         })
                         barcodesID.push(patternBarcode[i]);
+                    }
+
+                    // Create alternative content if it exists in configuration
+                    if (config.markers[i] && config.markers[i].alternativeContent) {
+                        const alternativeContentPromise = createAlternativeContent(i, config.markers[i].alternativeContent);
+                        if (alternativeContentPromise) {
+                            contentPromises.push(alternativeContentPromise.then((alternativeContent) => {
+                                if (alternativeContent) {
+                                    markerAlternativeContent.set(i, alternativeContent);
+                                    console.log(`Alternative content for marker ${i} created`);
+                                }
+                            }));
+                        }
                     }
 
                     // Використовуємо switch для роботи з кожним окремим випадком контенту
@@ -622,23 +849,45 @@
             function checkController() {
                 // Виконуємо перевірку тільки якщо контролер активний (видно камері)
                 if (controller && controller.parent && controller.parent.visible) {
+                    let intersectedMarkerIndex = null;
+                    
                     mainContainer.traverse((object) => {
                         if (object.isMesh && !(object.userData && object.userData.isController)) {
                             if (detectCollisionCubes(object, controller)) {
-                                object.material.color.set('red')
-                            } else {
-                                object.material.color.set('white')
+                                //bject.material.color.set('red');
+                                
+                                // Find which marker this object belongs to
+                                for (let i = 0; i < markerRoots.length; i++) {
+                                    if (markerRoots[i] && markerRoots[i].children.includes(object)) {
+                                        intersectedMarkerIndex = i;
+                                        break;
+                                    }
+                                }
                             }
                         }
                     });
+                    
+                    // Switch to alternative content for intersected marker if it has alternative content
+                    if (intersectedMarkerIndex !== null && markerAlternativeContent.has(intersectedMarkerIndex)) {
+                        switchMarkerContent(intersectedMarkerIndex, true);
+                    }
+                    
+                    // Reset all other markers to first content when controller is active but not intersecting them
+                    for (let i = 0; i < markerRoots.length; i++) {
+                        if (i !== intersectedMarkerIndex && markerContentState.get(i)) {
+                            switchMarkerContent(i, false);
+                        }
+                    }
                 }
                 // Якщо контролер не активний, скидаємо всі об'єкти до білого кольору
                 else {
-                    mainContainer.traverse((object) => {
-                        if (object.isMesh && !(object.userData && object.userData.isController)) {
-                            object.material.color.set('white')
+                                        
+                    // Reset all markers to first content when controller is not active
+                    for (let i = 0; i < markerRoots.length; i++) {
+                        if (markerContentState.get(i)) {
+                            switchMarkerContent(i, false);
                         }
-                    });
+                    }
                 }
             }
 
@@ -675,21 +924,6 @@
             function update() {
                 if (arToolkitSource.ready !== false) {
                     arToolkitContext.update(arToolkitSource.domElement);
-                    // Enforce Q/A visibility rule: an answer is only visible if its linked question is visible
-                    if (Array.isArray(markerRoots)) {
-                        for (let i = 0; i < markerRoots.length; i++) {
-                            const root = markerRoots[i];
-                            const isAnswer = root && root.userData && root.userData.category === 'answer';
-                            const questionIndex = root && root.userData ? root.userData.questionIndex : undefined;
-                            if (isAnswer && typeof questionIndex === 'number') {
-                                const questionVisible = markerRoots[questionIndex] && markerRoots[questionIndex].visible;
-                                if (!questionVisible) {
-                                    // Force-hide answer content when its question is not visible
-                                    root.visible = false;
-                                }
-                            }
-                        }
-                    }
                     if (contentInitialized) {
                         if (barcodesID.length) {
                             barcodesID.forEach((elem, index) => {

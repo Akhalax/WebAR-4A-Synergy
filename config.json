@@ -10,8 +10,19 @@
       "target": "pattern-ScanMe.patt",
       "contentType": "video",
       "contentFile": "waterfall.mp4",
-      "category": "question",
-      "answers": [1, 3, 5]
+      "alternativeContent": {
+        "contentType": "primitive",
+        "primitive": {
+          "type": "SphereGeometry",
+          "radius": 0.8,
+          "widthSegments": 16,
+          "heightSegments": 16,
+          "color": "#ff6600",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0],
+          "animation": { "type": "rotation", "axis": "y", "speed": 0.02 }
+        }
+      }
     },
     {
       "id": 1,
@@ -28,9 +39,7 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
-      },
-      "category": "answer",
-      "questionId": 0
+      }
     },
     {
       "id": 2,
@@ -41,8 +50,14 @@
       "modelScale": 0.3,
       "rotation": { "x": 1.5708, "y": 2.5 },
       "animation": { "type": "rotation", "axis": "z", "speed": 0.01 },
-      "category": "question",
-      "answers": [4, 8]
+      "alternativeContent": {
+        "contentType": "model",
+        "contentFile": "Bender.glb",
+        "modelScale": 0.3,
+        "position": { "z": -0.5 },
+        "rotation": { "y": -1.5707963267948966, "x": -1.0 },
+        "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
+      }
     },
     {
       "id": 3,
@@ -60,9 +75,7 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
-      },
-      "category": "answer",
-      "questionId": 0
+      }
     },
     {
       "id": 4,
@@ -73,9 +86,7 @@
       "modelScale": 0.3,
       "position": { "z": -0.5 },
       "rotation": { "y": -1.5707963267948966 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 },
-      "category": "answer",
-      "questionId": 2
+      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
     },
     {
       "id": 5,
@@ -90,9 +101,7 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
-      },
-      "category": "answer",
-      "questionId": 0
+      }
     },
     {
       "id": 6,
@@ -103,9 +112,7 @@
       "modelScale": 0.3,
       "position": { "z": -0.5 },
       "rotation": { "y": -1.5707963267948966, "x": -1.0 },
-      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 },
-      "category": "question",
-      "answers": [7, 9]
+      "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
     },
     {
       "id": 7,
@@ -123,8 +130,18 @@
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "x", "speed": 0.02 }
       },
-      "category": "answer",
-      "questionId": 6
+      "alternativeContent": {
+        "contentType": "primitive",
+        "primitive": {
+          "type": "BoxGeometry",
+          "size": [1.2, 1.2, 1.2],
+          "color": "#ff0066",
+          "textureFile": "texture_blue.jpg",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0],
+          "animation": { "type": "rotation", "axis": "z", "speed": 0.025 }
+        }
+      }
     },
     {
       "id": 8,
@@ -133,9 +150,7 @@
       "contentType": "model",
       "contentFile": "bird_orange.glb", 
       "modelScale": 100,
-      "animation": { "type": "rotation", "axis": "z", "speed": 0.005 },
-      "category": "answer",
-      "questionId": 2
+      "animation": { "type": "rotation", "axis": "z", "speed": 0.005 }
     },
     {
       "id": 9,
@@ -153,9 +168,7 @@
         "position": [0, 0, 0],
         "rotation": [0, 0, 0],
         "animation": { "type": "rotation", "axis": "z", "speed": 0.015 }
-      },
-      "category": "answer",
-      "questionId": 6
+      }
     },
     {
       "id": 10,
