@@ -166,15 +166,8 @@
         "size": 0.5,
         "height": 0.1
       },
-      "alternativeContent": {
-        "contentType": "text",
-        "text": {
-          "content": "Alternative Content",
-          "size": 0.5,
-          "height": 0.1,
-          "color": "#ff0066"
-        }
-      }
+      "audioFile": "question.mp3",
+      "playOnControllerIntersect": true
     },
     {
       "id": 11,

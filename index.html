@@ -100,6 +100,9 @@
             let patternsSound = new Map();
             let barcodesID = [];
             let patternsID = [];
+            // Map barcode values and pattern names to marker indices for audio lookup
+            let barcodeToMarkerIndex = new Map();
+            let patternToMarkerIndex = new Map();
 
             let controller;
             
@@ -108,6 +111,9 @@
             
             // Store alternative content objects for each marker
             let markerAlternativeContent = new Map();
+            
+            // Track which marker is currently intersected by controller tip (for audio playback)
+            let currentIntersectedMarker = null;
             
             // Font for text geometry
             let font = null;
@@ -600,11 +606,13 @@
                             type: 'pattern', patternUrl: patternNames[i], size: 1 + (i + 1) / patternIdOffset
                         })
                         patternsID.push(patternNames[i]);
+                        patternToMarkerIndex.set(patternNames[i], i);
                     } else {
                         let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoots[i], {
                             type: "barcode", barcodeValue: patternBarcode[i],
                         })
                         barcodesID.push(patternBarcode[i]);
+                        barcodeToMarkerIndex.set(patternBarcode[i], i);
                     }
 
                     // Create alternative content if it exists in configuration
@@ -725,11 +733,20 @@
                                     video.play();
                                 })
                             }
+                            // Check if video should only play on controller intersection
+                            let playOnControllerIntersect = config.markers[i] && config.markers[i].playOnControllerIntersect === true;
+                            
+                            // Store video object with flag
+                            let videoData = {
+                                sound: video,
+                                playOnControllerIntersect: playOnControllerIntersect
+                            };
+                            
                             // Додаємо відео до масиву аудіо контенту
                             if (patternBarcode[i] === -1) {
-                                patternsSound.set(i, video);
+                                patternsSound.set(i, videoData);
                             } else {
-                                barcodesSound.set(patternBarcode[i], video);
+                                barcodesSound.set(patternBarcode[i], videoData);
                             }
                             // Перенаправляємо текстуру з відео на матеріал для площини.
                             let texture2 = new THREE.VideoTexture(video);
@@ -938,6 +955,9 @@
 
                     // Якщо є аудіо файли, налаштовуємо їх і додаємо в масив аудіо контенту.
                     if (audioFiles[i]) {
+                        // Check if audio should only play on controller intersection
+                        let playOnControllerIntersect = config.markers[i] && config.markers[i].playOnControllerIntersect === true;
+                        
                         contentPromises.push(new Promise((resolve, reject) => {
                             audioLoader.load(`${audioFiles[i]}`, function (buffer) {
                                 // Створюємо аудіо джерело
@@ -948,10 +968,15 @@
                                 if (repeatOptions[i]) {
                                     sound.setLoop(true);
                                 }
+                                // Store sound object with flag
+                                let soundData = {
+                                    sound: sound,
+                                    playOnControllerIntersect: playOnControllerIntersect
+                                };
                                 if (patternBarcode[i] === -1) {
-                                    patternsSound.set(i, sound);
+                                    patternsSound.set(i, soundData);
                                 } else {
-                                    barcodesSound.set(patternBarcode[i], sound);
+                                    barcodesSound.set(patternBarcode[i], soundData);
                                 }
                                 resolve(sound)
                             });
@@ -996,6 +1021,9 @@
                         }
                     });
                     
+                    // Update current intersected marker for audio playback
+                    currentIntersectedMarker = intersectedMarkerIndex;
+                    
                     // Switch to alternative content for intersected marker if it has alternative content
                     if (intersectedMarkerIndex !== null && markerAlternativeContent.has(intersectedMarkerIndex)) {
                         switchMarkerContent(intersectedMarkerIndex, true);
@@ -1010,6 +1038,8 @@
                 }
                 // Якщо контролер не активний, скидаємо всі об'єкти до білого кольору
                 else {
+                    // Clear intersected marker when controller is not active
+                    currentIntersectedMarker = null;
                                         
                     // Reset all markers to first content when controller is not active
                     for (let i = 0; i < markerRoots.length; i++) {
@@ -1056,33 +1086,74 @@
                     if (contentInitialized) {
                         if (barcodesID.length) {
                             barcodesID.forEach((elem, index) => {
-                                if (arToolkitContext.arController.barcodeMarkers[elem].inCurrent) {
-                                    let sound = barcodesSound.get(elem);
-                                    if (sound && !sound.isPlaying) sound.play();
-                                } else {
-                                    let sound = barcodesSound.get(elem);
-                                    if (sound && sound.nodeName === 'VIDEO') {
-                                        if (!sound.paused) sound.pause()
+                                let soundData = barcodesSound.get(elem);
+                                if (!soundData) return;
+                                
+                                let markerIndex = barcodeToMarkerIndex.get(elem);
+                                if (markerIndex === undefined) return;
+                                
+                                let sound = soundData.sound || soundData; // Support both old format (direct) and new format (object)
+                                let playOnControllerIntersect = soundData.playOnControllerIntersect || false;
+                                
+                                let markerDetected = arToolkitContext.arController.barcodeMarkers[elem].inCurrent;
+                                let controllerIntersects = currentIntersectedMarker === markerIndex;
+                                
+                                // Determine if should play based on flag
+                                let shouldPlay = markerDetected;
+                                if (playOnControllerIntersect) {
+                                    shouldPlay = markerDetected && controllerIntersects;
+                                }
+                                
+                                if (shouldPlay) {
+                                    if (sound.nodeName === 'VIDEO') {
+                                        if (sound.paused) sound.play();
+                                    } else {
+                                        if (!sound.isPlaying) sound.play();
                                     }
-                                    if (sound && sound.isPlaying) sound.stop();
+                                } else {
+                                    if (sound.nodeName === 'VIDEO') {
+                                        if (!sound.paused) sound.pause();
+                                    }
+                                    if (sound.isPlaying) sound.stop();
                                 }
                             })
                         }
                         if (patternsID.length) {
                             for (let index = 0; index < patternsID.length; index++) {
-                                if (arToolkitContext.arController.patternMarkers[index].inCurrent) {
-                                    let patternID = (arToolkitContext.arController.patternMarkers[index].markerWidth - 1) * patternIdOffset - 1;
-                                    patternID = Math.round(patternID)
-                                    let sound = patternsSound.get(patternID);
-                                    if (sound && !sound.isPlaying) sound.play();
-                                } else {
-                                    let patternID = (arToolkitContext.arController.patternMarkers[index].markerWidth - 1) * patternIdOffset - 1;
-                                    patternID = Math.round(patternID)
-                                    let sound = patternsSound.get(patternID);
-                                    if (sound && sound.nodeName === 'VIDEO') {
-                                        if (!sound.paused) sound.pause()
+                                let patternName = patternsID[index];
+                                let markerIndex = patternToMarkerIndex.get(patternName);
+                                if (markerIndex === undefined) continue;
+                                
+                                let patternID = (arToolkitContext.arController.patternMarkers[index].markerWidth - 1) * patternIdOffset - 1;
+                                patternID = Math.round(patternID);
+                                
+                                // For patterns, the sound is stored by marker index, not patternID
+                                let soundData = patternsSound.get(markerIndex);
+                                if (!soundData) continue;
+                                
+                                let sound = soundData.sound || soundData; // Support both old format (direct) and new format (object)
+                                let playOnControllerIntersect = soundData.playOnControllerIntersect || false;
+                                
+                                let markerDetected = arToolkitContext.arController.patternMarkers[index].inCurrent;
+                                let controllerIntersects = currentIntersectedMarker === markerIndex;
+                                
+                                // Determine if should play based on flag
+                                let shouldPlay = markerDetected;
+                                if (playOnControllerIntersect) {
+                                    shouldPlay = markerDetected && controllerIntersects;
+                                }
+                                
+                                if (shouldPlay) {
+                                    if (sound.nodeName === 'VIDEO') {
+                                        if (sound.paused) sound.play();
+                                    } else {
+                                        if (!sound.isPlaying) sound.play();
                                     }
-                                    if (sound && sound.isPlaying) sound.stop();
+                                } else {
+                                    if (sound.nodeName === 'VIDEO') {
+                                        if (!sound.paused) sound.pause();
+                                    }
+                                    if (sound.isPlaying) sound.stop();
                                 }
                             }
                         }
