@@ -108,6 +108,21 @@
             
             // Store alternative content objects for each marker
             let markerAlternativeContent = new Map();
+            
+            // Font for text geometry
+            let font = null;
+            let fontLoader = new THREE.FontLoader();
+            
+            // Load font for text geometry (load once, reuse for all text objects)
+            const fontPromise = new Promise((resolve, reject) => {
+                fontLoader.load('helvetiker_regular.typeface.json', (loadedFont) => {
+                    font = loadedFont;
+                    resolve(loadedFont);
+                }, undefined, (error) => {
+                    console.error('Error loading font:', error);
+                    reject(error);
+                });
+            });
 
             // Використовуємо глобальну функцію updateWelcomeText(), яку ми вже визначили вище
             
@@ -127,6 +142,8 @@
                         return createAlternativeImageContent(markerRoot, alternativeContentConfig);
                     case 'video':
                         return createAlternativeVideoContent(markerRoot, alternativeContentConfig);
+                    case 'text':
+                        return createAlternativeTextContent(markerRoot, alternativeContentConfig);
                     default:
                         return null;
                 }
@@ -270,6 +287,56 @@
                 mesh.userData.isAlternativeContent = true;
                 
                 return Promise.resolve({ mesh, video });
+            }
+            
+            // Function to create text content for alternative content
+            function createAlternativeTextContent(markerRoot, config) {
+                return fontPromise.then((font) => {
+                    if (!config.text) return null;
+                    
+                    const textConfig = config.text || {};
+                    const textParams = {
+                        font: font,
+                        size: textConfig.size || 0.5,
+                        height: textConfig.height || 0.1,
+                        curveSegments: textConfig.curveSegments || 12,
+                        bevelEnabled: textConfig.bevelEnabled || false,
+                        bevelThickness: textConfig.bevelThickness || 0.03,
+                        bevelSize: textConfig.bevelSize || 0.02
+                    };
+                    
+                    const geometry = new THREE.TextGeometry(textConfig.content || 'Text', textParams);
+                    geometry.computeBoundingBox();
+                    
+                    const material = new THREE.MeshBasicMaterial({ 
+                        color: new THREE.Color(textConfig.color || '#ffffff')
+                    });
+                    
+                    const mesh = new THREE.Mesh(geometry, material);
+                    
+                    // Center the text
+                    const xMid = -0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+                    mesh.position.x = xMid;
+                    
+                    if (textConfig.position) {
+                        const pos = textConfig.position;
+                        mesh.position.x += (pos.x || 0);
+                        mesh.position.y = pos.y || 0;
+                        mesh.position.z = pos.z || 0;
+                    }
+                    
+                    if (textConfig.rotation) {
+                        const rot = textConfig.rotation;
+                        mesh.rotation.set(rot.x || 0, rot.y || 0, rot.z || 0);
+                    }
+                    
+                    if (textConfig.animation) {
+                        mesh.userData.animation = textConfig.animation;
+                    }
+                    
+                    mesh.userData.isAlternativeContent = true;
+                    return mesh;
+                });
             }
             
             // Function to switch content for a specific marker
@@ -500,6 +567,11 @@
                                 modelFiles.push('');
                                 imageFiles.push('');
                                 videoFiles.push(config.markers[i].contentFile || '');
+                                break;
+                            case 'text':
+                                modelFiles.push('');
+                                imageFiles.push('');
+                                videoFiles.push('');
                                 break;
                             default:
                                 modelFiles.push('');
@@ -754,6 +826,63 @@
                                 if (primitive.animation) {
                                     mesh.userData.animation = primitive.animation;
                                 }
+                            }
+                            break;
+                        case 'text':
+                            if (config.markers[i] && config.markers[i].text) {
+                                contentPromises.push(fontPromise.then((font) => {
+                                    const textConfig = config.markers[i].text || {};
+                                    const textParams = {
+                                        font: font,
+                                        size: textConfig.size || 0.5,
+                                        height: textConfig.height || 0.1,
+                                        curveSegments: textConfig.curveSegments || 12,
+                                        bevelEnabled: textConfig.bevelEnabled || false,
+                                        bevelThickness: textConfig.bevelThickness || 0.03,
+                                        bevelSize: textConfig.bevelSize || 0.02
+                                    };
+                                    
+                                    const geometry = new THREE.TextGeometry(textConfig.content || 'Text', textParams);
+                                    geometry.computeBoundingBox();
+                                    
+                                    const material = new THREE.MeshBasicMaterial({ 
+                                        color: new THREE.Color(textConfig.color || '#ffffff')
+                                    });
+                                    
+                                    const mesh = new THREE.Mesh(geometry, material);
+                                    
+                                    // Center the text
+                                    const xMid = -0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+                                    mesh.position.x = xMid;
+                                    
+                                    // Apply position from marker config if specified
+                                    if (config.markers[i].position) {
+                                        const pos = config.markers[i].position;
+                                        mesh.position.set(
+                                            mesh.position.x + (pos.x || 0),
+                                            mesh.position.y + (pos.y || 0),
+                                            mesh.position.z + (pos.z || 0)
+                                        );
+                                    }
+                                    
+                                    // Apply rotation from marker config if specified
+                                    if (config.markers[i].rotation) {
+                                        const rot = config.markers[i].rotation;
+                                        mesh.rotation.set(rot.x || 0, rot.y || 0, rot.z || 0);
+                                    }
+                                    
+                                    // Store animation if specified (prefer textConfig, fallback to marker level)
+                                    if (textConfig.animation) {
+                                        mesh.userData.animation = textConfig.animation;
+                                    } else if (config.markers[i].animation) {
+                                        mesh.userData.animation = config.markers[i].animation;
+                                    }
+                                    
+                                    markerRoots[i].add(mesh);
+                                    console.log(`Text content for marker ${i} created`);
+                                }).catch((error) => {
+                                    console.error(`Error creating text for marker ${i}:`, error);
+                                }));
                             }
                             break;
                         case 'controller':

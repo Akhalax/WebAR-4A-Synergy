@@ -159,6 +159,26 @@
     {
       "id": 10,
       "type": "barcode",
+      "target": 6,
+      "contentType": "text",
+      "text": {
+        "content": "Question",
+        "size": 0.5,
+        "height": 0.1
+      },
+      "alternativeContent": {
+        "contentType": "text",
+        "text": {
+          "content": "Alternative Content",
+          "size": 0.5,
+          "height": 0.1,
+          "color": "#ff0066"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "barcode",
       "target": 7,      
       "contentType": "controller"
     }
