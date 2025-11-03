@@ -35,7 +35,9 @@
         "color": "#ffff00",
         "textureFile": "texture_green.jpg",
         "animation": { "type": "rotation", "axis": "y", "speed": 0.01 }
-      }
+      },
+      "audioFile": "wrong_answer.mp3",
+      "playOnControllerIntersect": true
     },
     {
       "id": 2,
@@ -129,7 +131,9 @@
           "textureFile": "texture_blue.jpg",
           "animation": { "type": "rotation", "axis": "z", "speed": 0.025 }
         }
-      }
+      },
+      "audioFile": "correct_answer.mp3",
+      "playOnControllerIntersect": true
     },
     {
       "id": 8,
@@ -154,7 +158,9 @@
         "color": "#0000ff",
         "textureFile": "texture_green.jpg",
         "animation": { "type": "rotation", "axis": "z", "speed": 0.015 }
-      }
+      },
+      "audioFile": "wrong_answer.mp3",
+      "playOnControllerIntersect": true
     },
     {
       "id": 10,
