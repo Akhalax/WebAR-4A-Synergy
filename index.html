@@ -966,7 +966,7 @@
                                 sound.setBuffer(buffer);
                                 // Встановлюємо відео на автоповтор залежно від значення у масиві
                                 if (repeatOptions[i]) {
-                                    sound.setLoop(true);
+                                    sound.setLoop(!playOnControllerIntersect);
                                 }
                                 // Store sound object with flag
                                 let soundData = {
@@ -1101,7 +1101,7 @@
                                 // Determine if should play based on flag
                                 let shouldPlay = markerDetected;
                                 if (playOnControllerIntersect) {
-                                    shouldPlay = markerDetected && controllerIntersects;
+                                    shouldPlay = (markerDetected && controllerIntersects) || sound.isPlaying;
                                 }
                                 
                                 if (shouldPlay) {
